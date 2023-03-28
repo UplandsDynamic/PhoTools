@@ -1,3 +1,16 @@
+"""
+PhoTools > PhotOrganiser
+
+- Author: Dan Bright, dan@uplandsdynamic.com.
+- Licence: GPLv3.
+- Description: A script to search all images under 
+    a directory (recursively) for those matching given information, 
+    and to move all found images into new folders based on the 
+    information contained in the tag.
+- Documentation: To follow ...
+
+"""
+
 import argparse
 import subprocess
 import json
@@ -22,6 +35,11 @@ class AVAILABLE_TAG_TYPES:
     ALL: tuple = (KEYWORDS,)
 
 
+class AVAILABLE_TAG_INFO_SEARCH:
+    YEAR: str = "YEAR"
+    ALL: tuple = (YEAR,)
+
+
 class AVAILABLE_FILE_TYPES:
     JPG: str = "JPG"
     JPEG: str = "JPEG"
@@ -29,11 +47,6 @@ class AVAILABLE_FILE_TYPES:
     TIFF: str = "TIFF"
     PNG: str = "PNG"
     ALL: tuple = (JPG, JPEG, TIF, TIFF, PNG)
-
-
-class AVAILABLE_TAG_SEARCH:
-    YEAR: str = "YEAR"
-    ALL: tuple = (YEAR,)
 
 
 def _v(message: str) -> None:
@@ -75,9 +88,9 @@ def _get_iptc_keywords(file_paths: list[Path]) -> list[dict]:
     return results
 
 
-def find_target_tags(files: list, tag_search: str) -> list[dict]:
+def find_target_tags(files: list, tag_info_search: str) -> list[dict]:
     results: list = []
-    if tag_search == AVAILABLE_TAG_SEARCH.YEAR:
+    if tag_info_search == AVAILABLE_TAG_INFO_SEARCH.YEAR:
         # Extracts YEARS from IPTC KEYWORD tags that include the "DATE" token, e.g.: [DATE: 1984]
         pattern = r"(?i)date.*(\d{4}?)"
         for f in files:
@@ -154,7 +167,7 @@ def _format_json(input: list) -> list[dict]:
 def _write_log(message: str) -> None:
     log_path = Path(".")
     dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(log_path / "photorganiser.log", "a+") as file:
+    with open(log_path / "photOrganiser.log", "a+") as file:
         file.seek(0)
         data = file.read(100)
         if len(data) > 0:
@@ -192,13 +205,13 @@ def _validate_args(args: list[str | bool]) -> list[str | bool]:
         ):
             raise ValueError("Invalid tag type option. Aborting attempt.")
         args["tag_type"] = args["tag_type"].upper()
-    if args["tag_search"]:
+    if args["tag_info_search"]:
         if (
-            type(args["tag_search"]) is not str
-            or args["tag_search"].upper() not in AVAILABLE_TAG_SEARCH.ALL
+            type(args["tag_info_search"]) is not str
+            or args["tag_info_search"].upper() not in AVAILABLE_TAG_INFO_SEARCH.ALL
         ):
             raise ValueError("Invalid tag search option. Aborting attempt.")
-        args["tag_search"] = args["tag_search"].upper()
+        args["tag_info_search"] = args["tag_info_search"].upper()
     return args
 
 
@@ -216,7 +229,7 @@ def execute(
     rename_files: bool = False,
     meta_type: str = "IPTC",
     tag_type: str = "KEYWORDS",
-    tag_search: str = "YEAR",
+    tag_info_search: str = "YEAR",
 ) -> None:
     global _verbose_output
     newline: str = "\n"
@@ -228,7 +241,7 @@ def execute(
                 "rename_files": rename_files,
                 "meta_type": meta_type,
                 "tag_type": tag_type,
-                "tag_search": tag_search,
+                "tag_info_search": tag_info_search,
             },
         )
         _verbose_output = verbose
@@ -239,7 +252,7 @@ def execute(
             meta_type=cleaned_args["meta_type"], tag_type=cleaned_args["tag_type"]
         )(found_paths)
         image_matches = find_target_tags(
-            files=results, tag_search=cleaned_args["tag_search"]
+            files=results, tag_info_search=cleaned_args["tag_info_search"]
         )
         moved, move_failed = _move_images(image_matches, root_dir, rename_files)
 
@@ -267,7 +280,7 @@ def execute(
 # driver
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Move all image files with tags-of-interest in their ITPC KEYWORD tags into tag-titled folders."
+        description="Move all image files with tags-of-interest in their IPTC KEYWORD tags into tag-titled folders."
     )
     parser.add_argument(
         "-d",
@@ -314,7 +327,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-ts",
-        "--tag_search",
+        "--tag_info_search",
         type=str,
         help="Meta tag information to search for.",
         required=False,
@@ -331,5 +344,5 @@ if __name__ == "__main__":
         rename_files=args.rename_files,
         meta_type=args.meta_type,
         tag_type=args.tag_type,
-        tag_search=args.tag_search,
+        tag_info_search=args.tag_info_search,
     ) if confirm.lower() in ("yes", "y") else print("Aborting.")
