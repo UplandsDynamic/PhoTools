@@ -8,7 +8,7 @@ PhoTools > PhotOrganiser
     a directory (recursively) for those matching given information, 
     and to move all found images into new folders based on the 
     information contained in the tag.
-- Documentation: To follow ...
+- Documentation: To follow .....
 
 """
 
